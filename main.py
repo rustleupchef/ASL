@@ -1,4 +1,6 @@
+from pyexpat import model
 import cv2 as cv
+import google.generativeai as ai
 import os
 
 hello = cv.CascadeClassifier('Cascades/hello_cascade.xml')
