@@ -1,4 +1,4 @@
-train: ../train/images
-val: ../valid/images
+train: C:/Users/ravin/source/repos/ASL/yolov5/signs/train/images
+val: C:/Users/ravin/source/repos/ASL/yolov5/signs/valid/images
 nc: 5
 names: ['hello', 'ly', 'no', 'thanks', 'yes']
