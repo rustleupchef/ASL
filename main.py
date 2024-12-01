@@ -7,10 +7,16 @@ import torch
 import numpy as np
 from gtts import gTTS
 import threading
+import sys
 
 load_dotenv()
 
 isSpeaking = False
+
+def grabCommand() -> str:
+    if sys.platform == "linux": 
+        return "aplay sound.wav"
+    return "ffplay -nodisp -autoexit sound.wav" if sys.platform == "win32" else "afplay sound.wav"
 
 def speak(text: str) -> None:
     global isSpeaking
@@ -18,13 +24,14 @@ def speak(text: str) -> None:
     if isSpeaking == True: return
     isSpeaking = True
     gTTS(text, lang='en').save('sound.wav')
-    os.system("ffplay -nodisp -autoexit sound.wav")
+    os.system(grabCommand())
     isSpeaking = False
 
 def setVersion(isRealTime: bool) -> None:
     global model
     if isRealTime:
         model = torch.hub.load(repo_or_dir="ultralytics/yolov5", model="custom", path="yolov5/runs/train/exp7/weights/best.pt", force_reload=True)
+        model.conf = 0.65
         return
     genai.configure(api_key=os.getenv("API_KEY"))
     with open("instructions.txt", 'r') as file:
