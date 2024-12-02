@@ -10,7 +10,7 @@ import threading
 import sys
 
 load_dotenv()
-
+torch.set_printoptions(threshold=0)
 isSpeaking = False
 
 def grabCommand() -> str:
@@ -30,8 +30,12 @@ def speak(text: str) -> None:
 def setVersion(isRealTime: bool) -> None:
     global model
     if isRealTime:
-        model = torch.hub.load(repo_or_dir="ultralytics/yolov5", model="custom", path="yolov5/runs/train/exp7/weights/best.pt", force_reload=True)
-        model.conf = 0.65
+        model = torch.hub.load(repo_or_dir="yolov5/", 
+                               model="custom", 
+                               path="yolov5/runs/train/exp7/weights/best.pt", 
+                               source="local", 
+                               force_reload=True)
+        model.conf = 0.25
         return
     genai.configure(api_key=os.getenv("API_KEY"))
     with open("instructions.txt", 'r') as file:
@@ -54,24 +58,25 @@ def main() -> None:
     video = cv2.VideoCapture(0)
 
     while True:
+        local_model = model
         key = cv2.waitKey(1)
         if key == 27:
             break
         _, frame = video.read()
-
+        frame = cv2.resize(frame, (640, 480))
         if not isRealTime:
             cv2.imshow("frame", frame)
             if key == ord('f') :
                 cv2.imwrite("output.png", frame)
                 image = img.open("output.png")
-                response = model.generate_content([image, "What ASL sign is made in this image if any?"]).text
+                response = local_model.generate_content([image, "What ASL sign is made in this image if any?"]).text
                 thread = threading.Thread(target=speak, args=[response])
                 threads.append(thread)
                 thread.start()
             continue
         
         
-        results = model(frame)
+        results = local_model(frame, size=640)
         detections = results.pandas().xyxy[0]['name'].tolist()
         for detection in detections:
             thread = threading.Thread(target=speak, args=[detection])
