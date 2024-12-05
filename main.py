@@ -98,8 +98,10 @@ def main() -> None:
                             thread = threading.Thread(target=speak, args=[dictionary[listStr]])
                             threads.append(thread)
                             thread.start()
-                            chain.clear() 
-                    isFirstly = False
+                            chain.clear()
+                        isFirstly = True
+                    else:
+                        isFirstly = False
                 break
             if isChain:
                 if len(chain) == 0 or detection != chain[-1]: 
