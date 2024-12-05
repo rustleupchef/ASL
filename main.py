@@ -12,6 +12,7 @@ import sys
 load_dotenv()
 torch.set_printoptions(threshold=0)
 isSpeaking = False
+dictionary: dict = {}
 
 def grabCommand() -> str:
     if sys.platform == "linux": 
@@ -20,7 +21,6 @@ def grabCommand() -> str:
 
 def speak(text: str) -> None:
     global isSpeaking
-    print(isSpeaking)
     if isSpeaking == True: return
     isSpeaking = True
     gTTS(text, lang='en').save('sound.wav')
@@ -28,14 +28,22 @@ def speak(text: str) -> None:
     isSpeaking = False
 
 def setVersion(isRealTime: bool) -> None:
+    global dictionary
+    with open("Dictionary.csv", 'r') as file:
+        text = file.read().split('\n')
+        file.close()
+    for line in text:
+        items = line.split(',')
+        dictionary[str(items[0:-1])] = items[-1]
+    print(dictionary)
     global model
     if isRealTime:
         model = torch.hub.load(repo_or_dir="yolov5/", 
                                model="custom", 
-                               path="yolov5/runs/train/exp7/weights/best.pt", 
+                               path="models/ASL.pt", 
                                source="local", 
                                force_reload=True)
-        model.conf = 0.25
+        model.conf = 0.55
         return
     genai.configure(api_key=os.getenv("API_KEY"))
     with open("instructions.txt", 'r') as file:
@@ -54,11 +62,13 @@ def main() -> None:
             setVersion(isRealTime)
             break
         print("Please enter either R for realtime or G for gemini")
-    
+    isChain: bool = False
+    isFirstly: bool = True
+    chain: list[str] = []
+
     video = cv2.VideoCapture(0)
 
     while True:
-        local_model = model
         key = cv2.waitKey(1)
         if key == 27:
             break
@@ -69,16 +79,33 @@ def main() -> None:
             if key == ord('f') :
                 cv2.imwrite("output.png", frame)
                 image = img.open("output.png")
-                response = local_model.generate_content([image, "What ASL sign is made in this image if any?"]).text
+                response = model.generate_content([image, "What ASL sign is made in this image if any?"]).text
                 thread = threading.Thread(target=speak, args=[response])
                 threads.append(thread)
                 thread.start()
             continue
         
         
-        results = local_model(frame, size=640)
+        results = model(frame, size=640)
         detections = results.pandas().xyxy[0]['name'].tolist()
         for detection in detections:
+            if detection == "ly":
+                if isFirstly:
+                    isChain = not isChain
+                    if not isChain:
+                        listStr = str(chain)
+                        if listStr in dictionary.keys():
+                            thread = threading.Thread(target=speak, args=[dictionary[listStr]])
+                            threads.append(thread)
+                            thread.start()
+                            chain.clear() 
+                    isFirstly = False
+                break
+            if isChain:
+                if len(chain) == 0 or detection != chain[-1]: 
+                    chain.append(detection)
+                    isFirstly = True
+                break
             thread = threading.Thread(target=speak, args=[detection])
             threads.append(thread)
             thread.start()
