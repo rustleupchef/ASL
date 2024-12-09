@@ -19,7 +19,9 @@ def grabCommand() -> str:
         return "aplay sound.wav"
     return "ffplay -nodisp -autoexit sound.wav" if sys.platform == "win32" else "afplay sound.wav"
 
-def speak(text: str) -> None:
+def speak(text: str = None, image = None) -> None:
+    if text is None:
+        text = model.generate_content([image, "What ASL sign is made in this image if any?"]).text
     global isSpeaking
     if isSpeaking == True: return
     isSpeaking = True
@@ -79,8 +81,7 @@ def main() -> None:
             if key == ord('f') :
                 cv2.imwrite("output.png", frame)
                 image = img.open("output.png")
-                response = model.generate_content([image, "What ASL sign is made in this image if any?"]).text
-                thread = threading.Thread(target=speak, args=[response])
+                thread = threading.Thread(target=speak, args=[None,image])
                 threads.append(thread)
                 thread.start()
             continue
