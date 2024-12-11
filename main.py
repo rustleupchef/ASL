@@ -53,7 +53,6 @@ def setVersion(isRealTime: bool) -> None:
         file.close()
         pass   
 
-
 def main() -> None:
     threads: list[threading.Thread] = []
     isRealTime: bool = True
@@ -86,7 +85,6 @@ def main() -> None:
                 threads.append(thread)
                 thread.start()
             continue
-        
         
         results = model(frame, size=640)
         detections = results.pandas().xyxy[0]['name'].tolist()
