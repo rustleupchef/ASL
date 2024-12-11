@@ -66,6 +66,7 @@ def main() -> None:
         print("Please enter either R for realtime or G for gemini")
     isChain: bool = False
     isFirstly: bool = True
+    isEnded: bool = False
     chain: list[str] = []
 
     video = cv2.VideoCapture(0)
@@ -91,6 +92,7 @@ def main() -> None:
         detections = results.pandas().xyxy[0]['name'].tolist()
         for detection in detections:
             if detection == "ly":
+                if isEnded: continue
                 if isFirstly:
                     isChain = not isChain
                     if not isChain:
@@ -101,9 +103,12 @@ def main() -> None:
                             thread.start()
                             chain.clear()
                         isFirstly = True
+                        isEnded = True
                     else:
                         isFirstly = False
                 break
+            elif isFirstly:
+                isEnded = False
             if isChain:
                 if len(chain) == 0 or detection != chain[-1]: 
                     chain.append(detection)
