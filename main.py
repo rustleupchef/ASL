@@ -117,6 +117,7 @@ def main() -> None:
             thread = threading.Thread(target=speak, args=[detection])
             threads.append(thread)
             thread.start()
+            isFirstly = True
         cv2.imshow("frame", np.squeeze(results.render()))
 
     for thread in threads:
