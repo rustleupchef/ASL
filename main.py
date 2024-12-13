@@ -21,7 +21,7 @@ def grabCommand() -> str:
 
 def speak(text: str = None, image = None) -> None:
     if text is None:
-        text = model.generate_content([image, "What ASL sign is made in this image if any?"]).text
+        text = gmodel.generate_content([image, "What ASL sign is made in this image if any?"]).text
     global isSpeaking
     if isSpeaking == True: return
     isSpeaking = True
@@ -29,7 +29,7 @@ def speak(text: str = None, image = None) -> None:
     os.system(grabCommand())
     isSpeaking = False
 
-def setVersion(isRealTime: bool) -> None:
+def setVersion() -> None:
     global dictionary
     with open("Dictionary.csv", 'r') as file:
         text = file.read().split('\n')
@@ -39,36 +39,29 @@ def setVersion(isRealTime: bool) -> None:
         dictionary[str(items[0:-1])] = items[-1]
     print(dictionary)
     global model
-    if isRealTime:
-        model = torch.hub.load(repo_or_dir="yolov5/", 
-                               model="custom", 
-                               path="models/ASL.pt", 
-                               source="local", 
-                               force_reload=True)
-        model.conf = 0.55
-        return
+    model = torch.hub.load(repo_or_dir="yolov5/", 
+                            model="custom", 
+                            path="models/ASL.pt", 
+                            source="local", 
+                            force_reload=True)
+    model.conf = 0.55
     genai.configure(api_key=os.getenv("API_KEY"))
     with open("instructions.txt", 'r') as file:
-        model = genai.GenerativeModel("gemini-1.5-flash-002", system_instruction=file.read())
+        global gmodel
+        gmodel = genai.GenerativeModel("gemini-1.5-flash-002", system_instruction=file.read())
         file.close()
         pass   
 
 def main() -> None:
     threads: list[threading.Thread] = []
-    isRealTime: bool = True
-    while True:
-        inputText = input("Realtime - R or Gemini - G: ").upper()
-        if inputText == "R" or inputText == "G":
-            isRealTime = (inputText == "R")
-            setVersion(isRealTime)
-            break
-        print("Please enter either R for realtime or G for gemini")
+    setVersion()
     isChain: bool = False
     isFirstly: bool = True
     isEnded: bool = False
     chain: list[str] = []
 
     video = cv2.VideoCapture(0)
+    local_model = model
 
     while True:
         key = cv2.waitKey(1)
@@ -76,17 +69,14 @@ def main() -> None:
             break
         _, frame = video.read()
         frame = cv2.resize(frame, (640, 480))
-        if not isRealTime:
-            cv2.imshow("frame", frame)
-            if key == ord('f') :
-                cv2.imwrite("output.png", frame)
-                image = img.open("output.png")
-                thread = threading.Thread(target=speak, args=[None,image])
-                threads.append(thread)
-                thread.start()
-            continue
+        if key == ord('f') :
+            cv2.imwrite("output.png", frame)
+            image = img.open("output.png")
+            thread = threading.Thread(target=speak, args=[None,image])
+            threads.append(thread)
+            thread.start()
         
-        results = model(frame, size=640)
+        results = local_model(frame, size=640)
         detections = results.pandas().xyxy[0]['name'].tolist()
         for detection in detections:
             if detection == "ly":
