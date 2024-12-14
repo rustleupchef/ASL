@@ -11,6 +11,7 @@ It has 5 major hand signs
 Everytime one of these handsigns are made it says the hand sign.
 
 Theirs also a dictionary feature.
+
 ![alt text](readmeimgs/image.png)
 The dictionary system takes is args1, args2, args3... spoken text
 Each arg is a hand sign, and when those hand signs are made in that order the code says what's in the dictionary.
